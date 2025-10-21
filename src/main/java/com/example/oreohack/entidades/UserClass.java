@@ -7,7 +7,8 @@ import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
 @Table(name = "users")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
