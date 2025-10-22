@@ -39,7 +39,7 @@ public class AuthService {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("El email ya está registrado.");
         }
-        if (request.getRole() == Role.BRANCH && request.getBranch() == null) {
+        if (request.getRole() == Role.BRANCH && (request.getBranch() == null || request.getBranch().isBlank())) {
             throw new RuntimeException("El campo 'branch' es obligatorio para usuarios BRANCH.");
         }
         if (request.getRole() == Role.CENTRAL) {
@@ -58,15 +58,14 @@ public class AuthService {
 
         userRepository.save(user);
 
-        // Generar token JWT
-        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
-        String token = jwtService.generateToken(userDetails, user.getRole().name());
-
+        // Respuesta (sin token)
         return AuthResponseDTO.builder()
-                .token(token)
-                .expiresIn(jwtService.getExpirationTime().intValue())
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
                 .role(user.getRole().name())
                 .branch(user.getBranch())
+                .createdAt(user.getCreatedAt())
                 .build();
     }
 
@@ -92,12 +91,13 @@ public class AuthService {
             throw new UnknownError("Contraseña incorrecta");
         }
 
-        // Cargar UserDetails y generar token JWT
+        // Generar token JWT
         UserDetails userDetails = userDetailsService.loadUserByUsername(loginRequestDTO.getUsername());
         String token = jwtService.generateToken(userDetails, rol);
 
-        return new LoginResponseDTO(token, jwtService.getExpirationTime());
+        return new LoginResponseDTO(token, jwtService.getExpirationTime(), rol, user.getBranch());
     }
 }
+
 
 

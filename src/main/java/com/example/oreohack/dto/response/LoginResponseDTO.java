@@ -7,5 +7,7 @@ import lombok.Data;
 @AllArgsConstructor
 public class LoginResponseDTO {
     private String token;
-    private Long expiresIn; // en segundos
+    private Long expiresIn;
+    private String role;
+    private String branch;
 }
