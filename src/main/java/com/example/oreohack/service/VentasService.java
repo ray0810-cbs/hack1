@@ -7,10 +7,12 @@ import com.example.oreohack.entidades.UserClass;
 import com.example.oreohack.repositorios.SalesRepository;
 import com.example.oreohack.repositorios.UserClassRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -30,14 +32,17 @@ public class VentasService {
     public VentaResponseDTO crearVenta(VentaRequestDTO dto) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
-        UserClass user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        // Validación de permisos BRANCH
-        if (user.getRole() == UserClass.Role.BRANCH && !user.getBranch().equals(dto.getBranch())) {
-            throw new UnknownError("No tienes permiso para crear ventas en otra sucursal.");
+        UserClass user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no encontrado"));
+
+        // Reglas de negocio:
+        // Si es BRANCH, solo puede crear ventas en su propia sucursal
+        if (user.getRole() == UserClass.Role.BRANCH && !user.getBranch().equalsIgnoreCase(dto.getBranch())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puedes crear ventas para otra sucursal.");
         }
 
+        // Crear venta
         Sale sale = Sale.builder()
                 .sku(dto.getSku())
                 .units(dto.getUnits())
@@ -59,15 +64,16 @@ public class VentasService {
     public VentaResponseDTO obtenerVenta(String id) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
+
         UserClass user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no encontrado"));
 
         Sale sale = salesRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Venta no encontrada"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Venta no encontrada"));
 
-        if (user.getRole() == UserClass.Role.BRANCH &&
-                !sale.getBranch().equals(user.getBranch())) {
-            throw new UnknownError("No tienes permiso para ver ventas de otra sucursal.");
+        // BRANCH solo puede ver sus propias ventas
+        if (user.getRole() == UserClass.Role.BRANCH && !sale.getBranch().equalsIgnoreCase(user.getBranch())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puedes acceder a ventas de otra sucursal.");
         }
 
         return mapToResponse(sale);
@@ -80,8 +86,9 @@ public class VentasService {
     public List<VentaResponseDTO> listarVentas(LocalDateTime from, LocalDateTime to, String branch) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
+
         UserClass user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no encontrado"));
 
         List<Sale> ventas;
 
@@ -107,15 +114,16 @@ public class VentasService {
     public VentaResponseDTO actualizarVenta(String id, VentaRequestDTO dto) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
+
         UserClass user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no encontrado"));
 
         Sale sale = salesRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Venta no encontrada"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Venta no encontrada"));
 
         if (user.getRole() == UserClass.Role.BRANCH &&
-                !sale.getBranch().equals(user.getBranch())) {
-            throw new RuntimeException("No tienes permiso para modificar ventas de otra sucursal.");
+                !sale.getBranch().equalsIgnoreCase(user.getBranch())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puedes modificar ventas de otra sucursal.");
         }
 
         sale.setSku(dto.getSku());
@@ -135,11 +143,12 @@ public class VentasService {
     public void eliminarVenta(String id) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
+
         UserClass user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no encontrado"));
 
         if (user.getRole() != UserClass.Role.CENTRAL) {
-            throw new RuntimeException("Solo usuarios CENTRAL pueden eliminar ventas.");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo usuarios CENTRAL pueden eliminar ventas.");
         }
 
         salesRepository.deleteById(id);
@@ -157,8 +166,8 @@ public class VentasService {
                 .branch(sale.getBranch())
                 .soldAt(sale.getSoldAt())
                 .createdBy(sale.getCreatedBy().getUsername())
-                .createdAt(sale.getCreatedAt())
                 .build();
     }
 }
+
 

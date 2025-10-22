@@ -14,5 +14,5 @@ public class VentaResponseDTO {
     private String branch;
     private LocalDateTime soldAt;
     private String createdBy;
-    private LocalDateTime createdAt;
 }
+
