@@ -1,7 +1,7 @@
 package com.example.oreohack.seguridad;
 
 import com.example.oreohack.entidades.UserClass;
-import com.example.oreohack.repositorios.UserClassRepository;
+import com.example.oreohack.repositorios.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
@@ -16,7 +16,7 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class UserDetailsImplementation implements UserDetailsService {
-    private final UserClassRepository userRepository;
+    private final UserRepository userRepository;
 
     //Sobrescribir funcion, UserDetailsService ya tiene esta misma función definida, nosotros personalizamos
     //Su funcionamiento

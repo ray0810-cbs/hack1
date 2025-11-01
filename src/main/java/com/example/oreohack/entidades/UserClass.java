@@ -1,9 +1,11 @@
 package com.example.oreohack.entidades;
 
+import com.example.oreohack.entidades.roles.Role;
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDateTime;
 import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.Instant;
 
 @Entity
 @Table(name = "users")
@@ -28,18 +30,15 @@ public class UserClass {
     private String password;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 10)
+    @Column(nullable = false, length = 15)
     private Role role;
 
-    // Sucursal asignada (solo para ROLE_BRANCH)
-    @Column(nullable = true)
-    private String branch;
+    // Solo aplica si es ROLE_BRANCH
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "branch_id")
+    private Branch branch;
 
     @CreationTimestamp
-    private LocalDateTime createdAt;
-
-    public enum Role {
-        CENTRAL,
-        BRANCH
-    }
+    private Instant createdAt;
 }
+

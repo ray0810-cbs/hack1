@@ -1,9 +1,11 @@
 package com.example.oreohack.repositorios;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 import com.example.oreohack.entidades.ReportRequest;
+import com.example.oreohack.entidades.roles.ReportStatus;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-@Repository
+import java.util.List;
+
 public interface ReportRequestRepository extends JpaRepository<ReportRequest, String> {
+    List<ReportRequest> findByStatus(ReportStatus status);
 }

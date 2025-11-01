@@ -55,7 +55,8 @@ public class JwtFilter extends OncePerRequestFilter {
                 }
             }
         } catch (JwtException e) {
-            throw new UnknownError("Token inválido o expirado");
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token inválido o expirado");
+            return;
         }
 
         filterChain.doFilter(request, response);

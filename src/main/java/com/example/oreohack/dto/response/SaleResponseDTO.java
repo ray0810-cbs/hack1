@@ -1,18 +1,21 @@
 package com.example.oreohack.dto.response;
 
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
+import java.time.Instant;
 import java.time.LocalDateTime;
 
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
-public class VentaResponseDTO {
+public class SaleResponseDTO {
     private String id;
     private String sku;
-    private Integer units;
-    private Double price;
+    private int units;
+    private double price;
     private String branch;
     private LocalDateTime soldAt;
     private String createdBy;
+    private Instant createdAt;
 }
-

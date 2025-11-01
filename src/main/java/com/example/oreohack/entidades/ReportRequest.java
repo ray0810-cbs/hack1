@@ -1,10 +1,12 @@
 package com.example.oreohack.entidades;
 
+import com.example.oreohack.entidades.roles.ReportStatus;
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.Instant;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "report_requests")
@@ -19,23 +21,23 @@ public class ReportRequest {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-    private String branch;
-
+    @Column(nullable = false)
     private LocalDate fromDate;
+
+    @Column(nullable = false)
     private LocalDate toDate;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "branch_id")
+    private Branch branch;
 
     @Column(nullable = false)
     private String emailTo;
 
     @Enumerated(EnumType.STRING)
-    private Status status;
+    private ReportStatus status;
 
     @CreationTimestamp
-    private LocalDateTime createdAt;
-
-    public enum Status {
-        PROCESSING,
-        COMPLETED,
-        FAILED
-    }
+    private Instant requestedAt;
 }
+

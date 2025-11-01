@@ -2,8 +2,10 @@ package com.example.oreohack.entidades;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDateTime;
 import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "sales")
@@ -18,27 +20,27 @@ public class Sale {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 50)
     private String sku;
 
     @Column(nullable = false)
-    private Integer units;
+    private int units;
 
     @Column(nullable = false)
-    private Double price;
+    private double price;
 
-    @Column(nullable = false)
-    private String branch;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "branch_id", nullable = false)
+    private Branch branch;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", nullable = false)
+    private UserClass createdBy;
 
     @Column(nullable = false)
     private LocalDateTime soldAt;
 
     @CreationTimestamp
-    private LocalDateTime createdAt;
-
-    // Usuario que creó la venta
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by", nullable = false)
-    private UserClass createdBy;
+    private Instant createdAt;
 }
 
