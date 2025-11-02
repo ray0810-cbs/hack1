@@ -75,13 +75,16 @@ public class ReportEventListener {
             Branch branch = branchRepository.findByName(req.getBranch())
                     .orElseThrow(() -> new IllegalArgumentException("Sucursal no encontrada: " + req.getBranch()));
 
+
             // 3️⃣ Validar permisos (BRANCH solo su sucursal)
             final List<Sale> sales;
             if (user.getRole() == Role.CENTRAL) {
                 sales = salesRepository.findByDateRange(from, to);
             } else {
-                if (!branch.equals(user.getBranch())) {
-                    throw new SecurityException("No puede generar reportes de otra sucursal");
+                if (user.getRole() == Role.BRANCH) {
+                    if (!branch.getName().equalsIgnoreCase(user.getBranch().getName())) {
+                        throw new SecurityException("Usuario no autorizado para generar reportes de otra sucursal");
+                    }
                 }
                 sales = salesRepository.findByDateRangeAndBranch(from, to, branch);
             }

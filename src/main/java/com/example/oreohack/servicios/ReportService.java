@@ -11,6 +11,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -26,27 +27,37 @@ public class ReportService {
         }
 
         // 🏢 Validar sucursal solicitada
+        String finalBranch;
         if (user.getRole() == Role.CENTRAL) {
-            // CENTRAL puede solicitar reportes de cualquier sucursal existente
             if (dto.getBranch() == null || dto.getBranch().isBlank()) {
                 throw new InvalidRequestException("Debe especificar la sucursal para el reporte.");
             }
+            finalBranch = dto.getBranch();
         }
         else if (user.getRole() == Role.BRANCH) {
-            // BRANCH solo puede solicitar reportes de su propia sucursal
-            dto.setBranch(user.getBranch().getName());
+            if (!dto.getBranch().equalsIgnoreCase(user.getBranch().getName())) {
+                throw new ForbiddenActionException("Usuario no autorizado para generar reportes de otra sucursal.");
+            }
+            finalBranch = user.getBranch().getName(); // fuerza consistencia
         }
         else {
             throw new ForbiddenActionException("Rol no autorizado para solicitar reportes.");
         }
 
-        // 🪪 Generar ID único para el reporte
+        // 🪪 Generar ID único
         String requestId = "req_" + UUID.randomUUID().toString().substring(0, 8);
 
-        // 🚀 Publicar el evento asincrónico
-        eventPublisher.publishEvent(new ReportRequestedEvent(this, dto, user));
+        // 🚀 Publicar evento con DTO limpio
+        ReportRequestDTO cleanDto = ReportRequestDTO.builder()
+                .from(dto.getFrom())
+                .to(dto.getTo())
+                .branch(finalBranch)
+                .emailTo(dto.getEmailTo())
+                .build();
 
-        // 📦 Respuesta inmediata al cliente
+        eventPublisher.publishEvent(new ReportRequestedEvent(this, cleanDto, user));
+
+        // 📦 Respuesta inmediata
         return ReportResponseDTO.builder()
                 .requestId(requestId)
                 .status("PROCESSING")
@@ -56,6 +67,7 @@ public class ReportService {
                 .requestedAt(Instant.now())
                 .build();
     }
+
 
 }
 
