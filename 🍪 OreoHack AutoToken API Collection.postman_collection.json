@@ -1,0 +1,427 @@
+{
+	"info": {
+		"_postman_id": "81b7f747-f1ea-4bdb-b536-f19c82b1ac0d",
+		"name": "🍪 OreoHack AutoToken API Collection",
+		"description": "Colección con token automático reutilizable en todos los endpoints del Hackathon Oreo.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "47755087"
+	},
+	"item": [
+		{
+			"name": "AUTH",
+			"item": [
+				{
+					"name": "POST /auth/register (CENTRAL)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"oreo.admin\",\n  \"email\": \"admin@oreo.com\",\n  \"password\": \"Oreo1234\",\n  \"role\": \"CENTRAL\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "POST /auth/login (CENTRAL)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let json = pm.response.json();",
+									"pm.collectionVariables.set('token', json.token);",
+									"console.log('✅ Token guardado:', json.token);",
+									"pm.test('Debe devolver 200', ()=>pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"oreo.admin\",\n  \"password\": \"Oreo1234\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "POST /auth/register (BRANCH Miraflores)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"iraflores.user\",\n  \"email\": \"hola123\",\n  \"password\": \"Oreo1234\",\n  \"role\": \"BRANCH\",\n  \"branch\": \"Miraflores\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "POST /auth/login (BRANCH)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let json = pm.response.json();",
+									"pm.collectionVariables.set('token', json.token);",
+									"console.log('✅ Token guardado (BRANCH):', json.token);",
+									"pm.test('Debe devolver 200', ()=>pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"miraflores.user\",\n  \"password\": \"Oreo1234\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "SALES CRUD",
+			"item": [
+				{
+					"name": "POST /sales (crear venta)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Debe devolver 201', ()=>pm.response.to.have.status(201));",
+									"pm.collectionVariables.set('saleId', pm.response.json().id);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sku\": \"OREO_CLASSIC_12\",\n  \"units\": 25,\n  \"price\": 1.99,\n  \"branch\": \"Miraflores\",\n  \"soldAt\": \"2025-09-12T16:30:00Z\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/sales",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"sales"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GET /sales",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/sales",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"sales"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GET /sales/{id}",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/sales/{{saleId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"sales",
+								"{{saleId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "PUT /sales/{id}",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sku\": \"OREO_CLASSIC_12\",\n  \"units\": 30,\n  \"price\": 1.99,\n  \"branch\": \"Miraflores\",\n  \"soldAt\": \"2025-09-13T10:00:00Z\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/sales/{{saleId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"sales",
+								"{{saleId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "DELETE /sales/{id}",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/sales/{{saleId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"sales",
+								"{{saleId}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "REPORTS",
+			"item": [
+				{
+					"name": "POST /sales/summary/weekly",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"from\": \"2025-09-01\",\n  \"to\": \"2025-09-07\",\n  \"branch\": \"Miraflores\",\n  \"emailTo\": \"gerente@oreo.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/sales/summary/weekly",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"sales",
+								"summary",
+								"weekly"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "USERS",
+			"item": [
+				{
+					"name": "GET /users",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GET /users/{id}",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"1"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080"
+		},
+		{
+			"key": "token",
+			"value": ""
+		},
+		{
+			"key": "saleId",
+			"value": ""
+		},
+		{
+			"key": "reqId",
+			"value": ""
+		}
+	]
+}
