@@ -69,6 +69,11 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, "SERVICE_UNAVAILABLE", ex.getMessage(), request.getRequestURI());
     }
 
+    @ExceptionHandler(ForbiddenActionException.class)
+    public ResponseEntity<Map<String, Object>> handleForbiddenAction( ForbiddenActionException ex, HttpServletRequest request) {
+        return buildErrorResponse(HttpStatus.FORBIDDEN, "FORBIDDEN", ex.getMessage(), request.getRequestURI());
+    }
+
     // === VALIDATION ERRORS - Spring Validator ===
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidationErrors(

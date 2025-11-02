@@ -2,13 +2,12 @@ package com.example.oreohack.controladores;
 
 import com.example.oreohack.dto.request.SaleRequestDTO;
 import com.example.oreohack.dto.response.SaleResponseDTO;
-import com.example.oreohack.excepciones.NoContentException;
+import com.example.oreohack.entidades.UserClass;
 import com.example.oreohack.servicios.SalesService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,23 +20,34 @@ public class SalesController {
     private final SalesService salesService;
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED) // 201
-    public SaleResponseDTO createSale(@Valid @RequestBody SaleRequestDTO dto, Authentication auth) {
-        return salesService.createSale(dto, auth.getName());
+    public ResponseEntity<SaleResponseDTO> create(@RequestBody SaleRequestDTO dto,
+                                                  @AuthenticationPrincipal UserClass user) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(salesService.createSale(dto, user));
     }
 
     @GetMapping
-    public ResponseEntity<List<SaleResponseDTO>> listSales(Authentication auth,
-                                                           @RequestParam(required = false) String branch) {
-        List<SaleResponseDTO> sales = salesService.listSales(auth.getName(), branch);
-        if (sales.isEmpty()) throw new NoContentException("No hay ventas registradas en el rango dado");
-        return ResponseEntity.ok(sales); // 200 OK
+    public ResponseEntity<List<SaleResponseDTO>> getAll(@AuthenticationPrincipal UserClass user) {
+        return ResponseEntity.ok(salesService.getSales(user));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<SaleResponseDTO> getById(@PathVariable Long id,
+                                                   @AuthenticationPrincipal UserClass user) {
+        return ResponseEntity.ok(salesService.getSaleById(id, user));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<SaleResponseDTO> update(@PathVariable Long id,
+                                                  @RequestBody SaleRequestDTO dto,
+                                                  @AuthenticationPrincipal UserClass user) {
+        return ResponseEntity.ok(salesService.updateSale(id, dto, user));
     }
 
     @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT) // 204
-    public void deleteSale(@PathVariable String id) {
-        // Este método podría implementarse luego en SalesService
-        // y lanzaría UnauthorizedActionException si no es ROLE_CENTRAL
+    public ResponseEntity<Void> delete(@PathVariable Long id,
+                                       @AuthenticationPrincipal UserClass user) {
+        salesService.deleteSale(id, user);
+        return ResponseEntity.noContent().build();
     }
 }
+

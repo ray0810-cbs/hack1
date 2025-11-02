@@ -11,13 +11,13 @@ import com.example.oreohack.repositorios.*;
 import com.example.oreohack.seguridad.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.Collections;
 
 @Service
 @RequiredArgsConstructor
@@ -25,11 +25,11 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final BranchRepository branchRepository;
+    private final UserDetailsService userDetailsService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final ModelMapper mapper;
 
-    // ==================== REGISTRO ====================
     @Transactional
     public UserResponseDTO register(RegisterRequestDTO dto) {
         if (userRepository.existsByUsername(dto.getUsername()))
@@ -38,8 +38,8 @@ public class AuthService {
         if (userRepository.existsByEmail(dto.getEmail()))
             throw new ResourceConflictException("El email ya está registrado");
 
-        Branch branch = null;
         Role role = Role.valueOf(dto.getRole().toUpperCase());
+        Branch branch = null;
 
         if (role == Role.BRANCH) {
             if (dto.getBranch() == null)
@@ -62,7 +62,6 @@ public class AuthService {
         return mapper.map(user, UserResponseDTO.class);
     }
 
-    // ==================== LOGIN ====================
     public AuthResponseDTO authenticate(AuthRequestDTO dto) {
         UserClass user = userRepository.findByUsername(dto.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
@@ -70,16 +69,8 @@ public class AuthService {
         if (!passwordEncoder.matches(dto.getPassword(), user.getPassword()))
             throw new UnauthorizedActionException("Credenciales inválidas");
 
-        // ✅ Spring Security UserDetails wrapper
-        User springUser = new User(
-                user.getUsername(),
-                user.getPassword(),
-                Collections.emptyList()
-        );
-
-        // ✅ Generar token incluyendo el rol
-        String token = jwtService.generateToken(springUser, user.getRole().name());
-
+        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
+        String token = jwtService.generateToken(userDetails, user.getRole().name());
         return AuthResponseDTO.builder()
                 .token(token)
                 .expiresIn(jwtService.getExpirationTime())
@@ -88,3 +79,4 @@ public class AuthService {
                 .build();
     }
 }
+

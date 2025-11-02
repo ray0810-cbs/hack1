@@ -2,12 +2,13 @@ package com.example.oreohack.controladores;
 
 import com.example.oreohack.dto.request.ReportRequestDTO;
 import com.example.oreohack.dto.response.ReportResponseDTO;
+import com.example.oreohack.entidades.UserClass;
 import com.example.oreohack.servicios.ReportService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.security.core.Authentication;
 
 @RestController
 @RequestMapping("/sales/summary")
@@ -17,10 +18,10 @@ public class ReportController {
     private final ReportService reportService;
 
     @PostMapping("/weekly")
-    @ResponseStatus(HttpStatus.ACCEPTED) // 202
-    public ReportResponseDTO requestWeeklyReport(@Valid @RequestBody ReportRequestDTO dto,
-                                                 Authentication auth) {
-        return reportService.requestReport(dto, auth.getName());
+    public ResponseEntity<ReportResponseDTO> generateWeekly(@RequestBody ReportRequestDTO dto,
+                                                            @AuthenticationPrincipal UserClass user) {
+        ReportResponseDTO response = reportService.requestWeeklyReport(dto, user);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
     }
 }
 
