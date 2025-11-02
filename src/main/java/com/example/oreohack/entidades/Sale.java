@@ -38,7 +38,7 @@ public class Sale {
     private UserClass createdBy;
 
     @Column(nullable = false)
-    private LocalDateTime soldAt;
+    private Instant soldAt;
 
     @CreationTimestamp
     private Instant createdAt;
