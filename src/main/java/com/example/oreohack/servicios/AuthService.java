@@ -59,7 +59,11 @@ public class AuthService {
                 .build();
 
         userRepository.save(user);
-        return mapper.map(user, UserResponseDTO.class);
+        UserResponseDTO response = mapper.map(user, UserResponseDTO.class);
+        if (branch != null) {
+            response.setBranch(branch.getName());
+        }
+        return response;
     }
 
     public AuthResponseDTO authenticate(AuthRequestDTO dto) {
@@ -69,8 +73,9 @@ public class AuthService {
         if (!passwordEncoder.matches(dto.getPassword(), user.getPassword()))
             throw new UnauthorizedActionException("Credenciales inválidas");
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
-        String token = jwtService.generateToken(userDetails, user.getRole().name());
+        // No es necesario volver a cargarlo del repo
+        String token = jwtService.generateToken(user, user.getRole().name());
+
         return AuthResponseDTO.builder()
                 .token(token)
                 .expiresIn(jwtService.getExpirationTime())
@@ -78,5 +83,6 @@ public class AuthService {
                 .branch(user.getBranch() != null ? user.getBranch().getName() : null)
                 .build();
     }
+
 }
 

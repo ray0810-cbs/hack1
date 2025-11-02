@@ -42,7 +42,10 @@ public class SalesService {
                 .build();
 
         salesRepository.save(sale);
-        return mapper.map(sale, SaleResponseDTO.class);
+        SaleResponseDTO responseDTO = mapper.map(sale, SaleResponseDTO.class);
+        responseDTO.setCreatedBy(user.getUsername());
+        responseDTO.setBranch(branch.getName());
+        return responseDTO;
     }
 
     @Transactional(readOnly = true)
@@ -50,20 +53,30 @@ public class SalesService {
         List<Sale> sales = (user.getRole() == Role.CENTRAL)
                 ? salesRepository.findAll()
                 : salesRepository.findByBranch(user.getBranch());
-        return sales.stream().map(s -> mapper.map(s, SaleResponseDTO.class)).toList();
+        return sales.stream()
+                .map(sale -> {
+                    SaleResponseDTO dto = mapper.map(sale, SaleResponseDTO.class);
+                    dto.setBranch(sale.getBranch().getName());
+                    dto.setCreatedBy(sale.getCreatedBy().getUsername());
+                    return dto;
+                })
+                .toList();
     }
 
     @Transactional(readOnly = true)
-    public SaleResponseDTO getSaleById(Long id, UserClass user) {
+    public SaleResponseDTO getSaleById(String id, UserClass user) {
         Sale sale = salesRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Venta no encontrada"));
         if (user.getRole() == Role.BRANCH && !sale.getBranch().equals(user.getBranch()))
             throw new ForbiddenActionException("No puede acceder a ventas de otra sucursal");
-        return mapper.map(sale, SaleResponseDTO.class);
+        SaleResponseDTO responseDTO = mapper.map(sale, SaleResponseDTO.class);
+        responseDTO.setBranch(sale.getBranch().getName());
+        responseDTO.setCreatedBy(user.getUsername());
+        return responseDTO;
     }
 
     @Transactional
-    public SaleResponseDTO updateSale(Long id, SaleRequestDTO dto, UserClass user) {
+    public SaleResponseDTO updateSale(String id, SaleRequestDTO dto, UserClass user) {
         Sale sale = salesRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Venta no encontrada"));
 
@@ -80,7 +93,7 @@ public class SalesService {
     }
 
     @Transactional
-    public void deleteSale(Long id, UserClass user) {
+    public void deleteSale(String id, UserClass user) {
         if (user.getRole() == Role.BRANCH)
             throw new ForbiddenActionException("Solo ROLE_CENTRAL puede eliminar ventas");
 

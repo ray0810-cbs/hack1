@@ -21,12 +21,11 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
-import static java.util.Map.Entry.comparingByValue;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.stream.Collectors;
+import static java.util.Map.Entry.comparingByValue;
 
 @Slf4j
 @Component
@@ -55,47 +54,48 @@ public class ReportEventListener {
         UserClass user = event.getUser();
 
         try {
-            // 1) Rango de fechas (DTO trae String → LocalDate)
-            LocalDate from = (req.getFrom() != null && !req.getFrom().isBlank())
+            // 1️⃣ Convertir fechas String → LocalDate → Instant UTC
+            LocalDate fromDate = (req.getFrom() != null && !req.getFrom().isBlank())
                     ? LocalDate.parse(req.getFrom(), ISO)
                     : LocalDate.now().minusDays(7);
 
-            LocalDate to = (req.getTo() != null && !req.getTo().isBlank())
+            LocalDate toDate = (req.getTo() != null && !req.getTo().isBlank())
                     ? LocalDate.parse(req.getTo(), ISO)
                     : LocalDate.now();
 
-            // Instants para la consulta (inclusivo hasta el final del día "to")
-            Instant fromInstant = from.atStartOfDay(ZoneOffset.UTC).toInstant();
-            Instant toInstant = to.plusDays(1).atStartOfDay(ZoneOffset.UTC).minusNanos(1).toInstant();
+            // Convertir a Instant (inicio y fin del rango)
+            Instant from = fromDate.atStartOfDay(ZoneOffset.UTC).toInstant();
+            Instant to = toDate.plusDays(1).atStartOfDay(ZoneOffset.UTC).minusNanos(1).toInstant();
 
-            // 2) Sucursal
+            // 2️⃣ Buscar sucursal
             if (req.getBranch() == null || req.getBranch().isBlank()) {
                 throw new IllegalArgumentException("El campo 'branch' es obligatorio para el reporte.");
             }
+
             Branch branch = branchRepository.findByName(req.getBranch())
                     .orElseThrow(() -> new IllegalArgumentException("Sucursal no encontrada: " + req.getBranch()));
 
-            // Si es BRANCH, restringir a su propia sucursal
+            // 3️⃣ Validar permisos (BRANCH solo su sucursal)
             final List<Sale> sales;
             if (user.getRole() == Role.CENTRAL) {
-                sales = salesRepository.findByDateRange(fromInstant, toInstant);
-            } else { // BRANCH
+                sales = salesRepository.findByDateRange(from, to);
+            } else {
                 if (!branch.equals(user.getBranch())) {
-                    // Seguridad extra (de todos modos ya se valida antes en el servicio)
                     throw new SecurityException("No puede generar reportes de otra sucursal");
                 }
-                sales = salesRepository.findByDateRangeAndBranch(fromInstant, toInstant, branch);
+                sales = salesRepository.findByDateRangeAndBranch(from, to, branch);
             }
 
+            // 4️⃣ Si no hay ventas
             if (sales.isEmpty()) {
                 sendEmail(req.getEmailTo(),
-                        "Reporte Semanal Oreo - " + from + " a " + to,
-                        "No se encontraron ventas en el rango especificado (" + from + " a " + to + ").");
-                log.info("Reporte sin ventas enviado a {}", req.getEmailTo());
+                        "Reporte Semanal Oreo - " + fromDate + " a " + toDate,
+                        "No se encontraron ventas en el rango especificado (" + fromDate + " a " + toDate + ").");
+                log.info("📭 Reporte sin ventas enviado a {}", req.getEmailTo());
                 return;
             }
 
-            // 3) Agregados
+            // 5️⃣ Calcular agregados
             int totalUnits = sales.stream().mapToInt(Sale::getUnits).sum();
             double totalRevenue = sales.stream().mapToDouble(s -> s.getUnits() * s.getPrice()).sum();
 
@@ -116,7 +116,7 @@ public class ReportEventListener {
                     .map(Map.Entry::getKey)
                     .orElse("N/A");
 
-            // 4) Llamada a GitHub Models (Map JSON + generics seguros)
+            // 6️⃣ Llamar a GitHub Models
             WebClient client = WebClient.builder().build();
 
             Map<String, Object> body = Map.of(
@@ -144,9 +144,11 @@ public class ReportEventListener {
 
             String summaryText = extractSummary(response);
 
-            // 5) Email
-            String subject = String.format("Reporte Semanal Oreo - %s a %s", from, to);
+            // 7️⃣ Enviar correo
+            String subject = "🍪 Reporte Semanal Oreo - %s a %s".formatted(fromDate, toDate);
             String bodyText = """
+                    📊 Reporte semanal de ventas (%s)
+                    
                     %s
 
                     Datos principales:
@@ -154,10 +156,19 @@ public class ReportEventListener {
                     - Total Recaudado: %.2f
                     - SKU Más Vendido: %s
                     - Sucursal Top: %s
-                    """.formatted(summaryText, totalUnits, totalRevenue, topSku, topBranch);
+                    
+                    Generado automáticamente por Oreo Insight Factory 🥛🤖
+                    """.formatted(
+                    branch.getName(),
+                    summaryText,
+                    totalUnits,
+                    totalRevenue,
+                    topSku,
+                    topBranch
+            );
 
             sendEmail(req.getEmailTo(), subject, bodyText);
-            log.info("Reporte enviado correctamente a {}", req.getEmailTo());
+            log.info("✅ Reporte enviado correctamente a {}", req.getEmailTo());
 
         } catch (WebClientResponseException ex) {
             log.error("Error en GitHub Models API: {}", ex.getMessage());
@@ -168,6 +179,7 @@ public class ReportEventListener {
         }
     }
 
+    // Método auxiliar: envío de correo
     private void sendEmail(String to, String subject, String body) throws MessagingException {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
@@ -177,6 +189,7 @@ public class ReportEventListener {
         mailSender.send(message);
     }
 
+    // Método auxiliar: parseo de respuesta del modelo
     @SuppressWarnings("unchecked")
     private String extractSummary(Map<String, Object> resp) {
         if (resp == null) return "No se obtuvo respuesta del modelo.";
@@ -186,11 +199,11 @@ public class ReportEventListener {
                 return "Respuesta del modelo sin 'choices'.";
             }
             Object first = choices.get(0);
-            if (!(first instanceof Map<?,?> firstMap)) {
+            if (!(first instanceof Map<?, ?> firstMap)) {
                 return "Respuesta 'choices[0]' inválida.";
             }
             Object messageObj = firstMap.get("message");
-            if (!(messageObj instanceof Map<?,?> msg)) {
+            if (!(messageObj instanceof Map<?, ?> msg)) {
                 return "Respuesta sin 'message'.";
             }
             Object content = msg.get("content");

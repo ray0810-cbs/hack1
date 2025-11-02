@@ -31,20 +31,20 @@ public class SalesController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<SaleResponseDTO> getById(@PathVariable Long id,
+    public ResponseEntity<SaleResponseDTO> getById(@PathVariable String id,
                                                    @AuthenticationPrincipal UserClass user) {
         return ResponseEntity.ok(salesService.getSaleById(id, user));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<SaleResponseDTO> update(@PathVariable Long id,
+    public ResponseEntity<SaleResponseDTO> update(@PathVariable String id,
                                                   @RequestBody SaleRequestDTO dto,
                                                   @AuthenticationPrincipal UserClass user) {
         return ResponseEntity.ok(salesService.updateSale(id, dto, user));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id,
+    public ResponseEntity<Void> delete(@PathVariable String id,
                                        @AuthenticationPrincipal UserClass user) {
         salesService.deleteSale(id, user);
         return ResponseEntity.noContent().build();

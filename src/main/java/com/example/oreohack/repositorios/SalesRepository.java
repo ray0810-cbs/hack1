@@ -9,7 +9,7 @@ import org.springframework.data.repository.query.Param;
 import java.time.Instant;
 import java.util.List;
 
-public interface SalesRepository extends JpaRepository<Sale, Long> {
+public interface SalesRepository extends JpaRepository<Sale, String> {
 
     List<Sale> findByBranch(Branch branch);
 
