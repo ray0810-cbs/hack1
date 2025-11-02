@@ -59,39 +59,6 @@ com.example.oreohack
  └── OreoHackApplication.java # Clase principal con @EnableAsync
 ```
 
----
-
-## 📦 Variables de Entorno (.env)
-
-Ejemplo de configuración en el archivo `.env` (nunca subir a GitHub):
-
-```properties
-# 🌐 APP CONFIG
-SERVER_PORT=8081
-SPRING_APPLICATION_NAME=oreoHACK
-
-# 🐘 DATABASE
-DB_URL=jdbc:postgresql://localhost:5435/mydb
-DB_USER=postgres
-DB_PASS=mypassword
-
-# 🔐 JWT CONFIG
-JWT_SECRET=0QpSmVyqFImYDkEIVrEhazFEbMb0/Y7H89HWk4AJ16JLF4TgxSHvxfsCNBSsLUbzQ5ZeaCDRJSw7NtVVUd5Fgg==
-JWT_EXPIRATION=3600000
-
-# 🤖 GITHUB MODELS
-GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxxxx
-GITHUB_MODELS_URL=https://api.github.com/v1/models/completions
-MODEL_ID=openai/gpt-5-mini
-
-# 📧 EMAIL CONFIG (SMTP Gmail)
-MAIL_HOST=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USERNAME=ray.bolanos@utec.edu.pe
-MAIL_PASSWORD=cbup pywx udsy rbja
-spring.mail.properties.mail.smtp.auth=true
-spring.mail.properties.mail.smtp.starttls.enable=true
-```
 
 ---
 
