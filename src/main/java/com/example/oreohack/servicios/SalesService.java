@@ -25,23 +25,36 @@ public class SalesService {
 
     @Transactional
     public SaleResponseDTO createSale(SaleRequestDTO dto, UserClass user) {
-        Branch branch = branchRepository.findByName(dto.getBranch())
-                .orElseThrow(() -> new ResourceNotFoundException("Sucursal no encontrada"));
+        Branch branch;
 
-        if (user.getRole() == Role.BRANCH && !branch.equals(user.getBranch()))
-            throw new ForbiddenActionException("No puede registrar ventas de otra sucursal");
+        // 🔹 Caso 1: CENTRAL — puede elegir cualquier sucursal
+        if (user.getRole() == Role.CENTRAL) {
+            branch = branchRepository.findByName(dto.getBranch())
+                    .orElseThrow(() -> new ResourceNotFoundException("Sucursal no encontrada: " + dto.getBranch()));
+        }
+        // 🔹 Caso 2: BRANCH — siempre usa su propia sucursal, ignora el DTO
+        else if (user.getRole() == Role.BRANCH) {
+            branch = user.getBranch();
+        }
+        // 🔹 (Opcional) seguridad adicional: cualquier otro rol es inválido
+        else {
+            throw new ForbiddenActionException("Rol no autorizado para registrar ventas");
+        }
 
+        // 🔸 Construcción del objeto venta
         Sale sale = Sale.builder()
                 .sku(dto.getSku())
                 .units(dto.getUnits())
                 .price(dto.getPrice())
                 .branch(branch)
-                .soldAt(dto.getSoldAt())
+                .soldAt(dto.getSoldAt() != null ? dto.getSoldAt() : Instant.now())
                 .createdBy(user)
                 .createdAt(Instant.now())
                 .build();
 
         salesRepository.save(sale);
+
+        // 🔸 Respuesta DTO
         SaleResponseDTO responseDTO = mapper.map(sale, SaleResponseDTO.class);
         responseDTO.setCreatedBy(user.getUsername());
         responseDTO.setBranch(branch.getName());
@@ -50,9 +63,16 @@ public class SalesService {
 
     @Transactional(readOnly = true)
     public List<SaleResponseDTO> getSales(UserClass user) {
-        List<Sale> sales = (user.getRole() == Role.CENTRAL)
-                ? salesRepository.findAll()
-                : salesRepository.findByBranch(user.getBranch());
+        List<Sale> sales;
+
+        if (user.getRole() == Role.CENTRAL) {
+            sales = salesRepository.findAll();
+        } else if (user.getRole() == Role.BRANCH) {
+            sales = salesRepository.findByBranch(user.getBranch());
+        } else {
+            throw new ForbiddenActionException("Rol no autorizado para consultar ventas");
+        }
+
         return sales.stream()
                 .map(sale -> {
                     SaleResponseDTO dto = mapper.map(sale, SaleResponseDTO.class);
@@ -67,12 +87,15 @@ public class SalesService {
     public SaleResponseDTO getSaleById(String id, UserClass user) {
         Sale sale = salesRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Venta no encontrada"));
-        if (user.getRole() == Role.BRANCH && !sale.getBranch().equals(user.getBranch()))
+
+        if (user.getRole() == Role.BRANCH && !sale.getBranch().equals(user.getBranch())) {
             throw new ForbiddenActionException("No puede acceder a ventas de otra sucursal");
-        SaleResponseDTO responseDTO = mapper.map(sale, SaleResponseDTO.class);
-        responseDTO.setBranch(sale.getBranch().getName());
-        responseDTO.setCreatedBy(user.getUsername());
-        return responseDTO;
+        }
+
+        SaleResponseDTO dto = mapper.map(sale, SaleResponseDTO.class);
+        dto.setBranch(sale.getBranch().getName());
+        dto.setCreatedBy(sale.getCreatedBy().getUsername());
+        return dto;
     }
 
     @Transactional
@@ -80,16 +103,21 @@ public class SalesService {
         Sale sale = salesRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Venta no encontrada"));
 
-        if (user.getRole() == Role.BRANCH && !sale.getBranch().equals(user.getBranch()))
+        if (user.getRole() == Role.BRANCH && !sale.getBranch().equals(user.getBranch())) {
             throw new ForbiddenActionException("No puede modificar ventas de otra sucursal");
+        }
 
         sale.setSku(dto.getSku());
         sale.setUnits(dto.getUnits());
         sale.setPrice(dto.getPrice());
-        sale.setSoldAt(dto.getSoldAt());
+        sale.setSoldAt(dto.getSoldAt() != null ? dto.getSoldAt() : Instant.now());
+
         salesRepository.save(sale);
 
-        return mapper.map(sale, SaleResponseDTO.class);
+        SaleResponseDTO dtoResponse = mapper.map(sale, SaleResponseDTO.class);
+        dtoResponse.setBranch(sale.getBranch().getName());
+        dtoResponse.setCreatedBy(sale.getCreatedBy().getUsername());
+        return dtoResponse;
     }
 
     @Transactional
@@ -99,8 +127,10 @@ public class SalesService {
 
         Sale sale = salesRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Venta no encontrada"));
+
         salesRepository.delete(sale);
     }
+
 }
 
 

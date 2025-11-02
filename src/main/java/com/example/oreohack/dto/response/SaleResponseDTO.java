@@ -1,5 +1,6 @@
 package com.example.oreohack.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.*;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -15,7 +16,9 @@ public class SaleResponseDTO {
     private int units;
     private double price;
     private String branch;
-    private LocalDateTime soldAt;
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private Instant soldAt;
     private String createdBy;
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Instant createdAt;
 }

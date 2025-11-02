@@ -19,6 +19,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
@@ -39,8 +40,6 @@ public class ReportEventListener {
     @Value("${GITHUB_TOKEN}")
     private String githubToken;
 
-    @Value("${GITHUB_MODELS_URL}")
-    private String githubModelsUrl;
 
     @Value("${MODEL_ID}")
     private String modelId;
@@ -48,6 +47,7 @@ public class ReportEventListener {
     private static final DateTimeFormatter ISO = DateTimeFormatter.ISO_DATE;
 
     @Async
+    @Transactional(readOnly = true)
     @org.springframework.context.event.EventListener
     public void handleReportRequest(ReportRequestedEvent event) {
         ReportRequestDTO req = event.getRequest();
@@ -89,8 +89,8 @@ public class ReportEventListener {
             // 4️⃣ Si no hay ventas
             if (sales.isEmpty()) {
                 sendEmail(req.getEmailTo(),
-                        "Reporte Semanal Oreo - " + fromDate + " a " + toDate,
-                        "No se encontraron ventas en el rango especificado (" + fromDate + " a " + toDate + ").");
+                        "🍪 Reporte Semanal Oreo - " + fromDate + " a " + toDate,
+                        "📭 No se encontraron ventas en el rango especificado (" + fromDate + " a " + toDate + ").");
                 log.info("📭 Reporte sin ventas enviado a {}", req.getEmailTo());
                 return;
             }
@@ -120,27 +120,31 @@ public class ReportEventListener {
             WebClient client = WebClient.builder().build();
 
             Map<String, Object> body = Map.of(
-                    "model", modelId,
+                    "model", "gpt-4o-mini",
                     "messages", List.of(
                             Map.of("role", "system",
-                                    "content", "Eres un analista que escribe resúmenes breves y claros para emails corporativos."),
+                                    "content", "Eres un analista que redacta resúmenes breves y claros para correos ejecutivos en español."),
                             Map.of("role", "user",
                                     "content", String.format(
-                                            "Con estos datos: totalUnits=%d, totalRevenue=%.2f, topSku=%s, topBranch=%s. " +
-                                                    "Devuelve un resumen ≤120 palabras, en español, claro y conciso.",
+                                            "Resumen de ventas: totalUnits=%d, totalRevenue=%.2f, topSku=%s, topBranch=%s. " +
+                                                    "Devuelve un texto ≤120 palabras, profesional y conciso.",
                                             totalUnits, totalRevenue, topSku, topBranch))
                     ),
                     "max_tokens", 200
             );
 
+
             Map<String, Object> response = client.post()
-                    .uri(githubModelsUrl)
+                    .uri("https://models.inference.ai.azure.com/chat/completions")
                     .contentType(MediaType.APPLICATION_JSON)
                     .header("Authorization", "Bearer " + githubToken)
+                    .header("X-Model", "gpt-4o-mini") // ⚠️ modelo real y funcional
                     .bodyValue(body)
                     .retrieve()
                     .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
                     .block();
+
+
 
             String summaryText = extractSummary(response);
 
